@@ -46,7 +46,17 @@ module stimulus;
 		#5 reset = 0;	
 		
 		#10000;		
-		$display("x10 = %d", cpu.reg_file[10].x._reg_out);
+		$display("x11 = %d", cpu.reg_file[11].x._reg_out);
+
+		$display("x12  = %d", cpu.reg_file[12].x._reg_out); // Should be 12
+
+		$display("x10  = %d", cpu.reg_file[10].x._reg_out); // Should be 12
+
+
+
+    	// 3. Halt State Check (PC)
+    	// Note: Access the PC register instance
+    	$display("PC (Halt Addr) = %d", cpu.PC._reg_out); // Should be 12
 		$stop;
 	end	
 endmodule

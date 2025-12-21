@@ -122,7 +122,7 @@ module miniRV (
 	);
 
 	REGISTER #(.WIDTH(32)) x0(
-		.wre(ctrl_xwre[0]),
+		.wre(1'b0),
 		.rde(ctrl_xrde[0]),//.rde(ctrl_memrde),
 
 		.reg_out(BUS),

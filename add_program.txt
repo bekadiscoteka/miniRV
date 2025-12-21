@@ -1,0 +1,4 @@
+0:  addi a1, zero, 10   # x11 = 10 (0xA)
+4:  addi a2, zero, 20   # x12 = 20 (0x14)
+8:  add  a0, a1, a2     # x10 = x11 + x12 = 30 (0x1E)
+c:  jalr zero, 12(zero) # Infinite Loop (Halt)

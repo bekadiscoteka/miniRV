@@ -1,0 +1,28 @@
+// Address 0: 12345537 (lui a0, 0x12345)
+// Run the simulation again with this fixed file. You should now see:
+
+// x11 = aaaaa555
+
+// x10 = 12345000
+37
+55
+34
+12
+
+// Address 4: AAAAA5B7 (lui a1, 0xAAAAA) -- FIXED BYTE 2 (Was 5A, Now A5)
+B7
+A5
+AA
+AA
+
+// Address 8: 55558593 (addi a1, a1, 0x555)
+93
+85
+55
+55
+
+// Address C (12): 00C00067 (jalr zero, 12(zero)) -> HALT
+67
+00
+C0
+00

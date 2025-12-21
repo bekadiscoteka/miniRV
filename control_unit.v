@@ -2,7 +2,6 @@
 
 module control_unit(
 	output reg			PC_wre,			PC_rde,
-						x0_wre, 		x0_rde,
 						addr_wre,		addr_rde,
 						RAM_wre,		RAM_rde,
 						ALU_wre,		ALU_rde,
@@ -22,26 +21,37 @@ module control_unit(
 
 	localparam [2:0]	FETCH=0, EXEC=1,
 						FETCH_SETADDR=0, FETCH_SETPC=1,
-						DECODE=0, ADDI_SETALU=1, ADDI_SETRD=2, JALR_INCPC=3, JALR_SETRD=4, JALR_SETALU=5, JALR_SETPC=6,
 						ADD=0, INC=1, ADD_EVEN=2;
 
-	localparam [6:0] 	ADDI=7'b0010011, JALR=7'b1100111;
+	localparam [6:0] 	ADDI=7'b0010011, JALR=7'b1100111,
+						LUI=7'b0110111,
+						LW=7'b0000011,
+						ADD_R=7'b0110011;
 						
 
-	reg [2:0] state, exec_state, fetch_state;
-	reg [2:0] nxt_state, nxt_exec_state, nxt_fetch_state;
+	localparam [3:0] 	DECODE=0, 
+						ADDI_SETALU=1, ADDI_SETRD=2, 
+						JALR_INCPC=3, JALR_SETRD=4, JALR_SETALU=5, JALR_SETPC=6, 
+						LUI_SETRD=7, 
+						LW_SETALU=8, LW_SETADDR=9, LW_MEMREAD=10, LW_SETCTRLOUT=11, LW_SETRD=12,
+						ADD_SETALU=13, ADD_SETRD=14;
+						
+
+	reg [2:0] state, nxt_state, fetch_state, nxt_fetch_state;
+	reg [3:0] exec_state, nxt_exec_state;
 	reg [31:0] nxt_instr, instr;
 				
-	wire [6:0] opcode	= RAM_data_in[6:0];
-	wire [4:0] rd		= RAM_data_in[11:7];
-	wire [2:0] funct3	= RAM_data_in[14:12];
-	wire [4:0] rs1		= RAM_data_in[19:15];
-	wire [11:0] immI	= RAM_data_in[31:20];
+	wire [6:0] opcode	= nxt_instr[6:0];
+	wire [4:0] rd		= nxt_instr[11:7];
+	wire [2:0] funct3	= nxt_instr[14:12];
+	wire [4:0] rs1		= nxt_instr[19:15];
+	wire [4:0] rs2		= nxt_instr[24:20];
+	wire [11:0] immI	= nxt_instr[31:20];
+	wire [19:0] immU 	= nxt_instr[31:12];
 
 	always @* begin
 		
 		PC_wre=0;		PC_rde=0;
-				 		x0_rde=0;
 		addr_wre=0;		
 		RAM_wre=0;		RAM_rde=0;
 		ALU_wre=0;		ALU_rde=0;
@@ -49,6 +59,7 @@ module control_unit(
 		out_wre=0;		out_rde=0;
 		x_rde=0;		x_wre=0;
 		bus_out=0;		
+		nxt_instr=instr;
 
 		nxt_fetch_state = FETCH_SETADDR; nxt_exec_state = DECODE;	nxt_state = state;
 		case (state) 
@@ -80,6 +91,31 @@ module control_unit(
 
 								nxt_exec_state = JALR_INCPC;
 							end
+							LUI: begin
+								bus_out = {immU, 12'd0};
+
+								out_wre = 1;
+
+								nxt_exec_state = LUI_SETRD;
+							end
+							LW: begin
+								if (immI[11]) bus_out = {{20{1'b1}}, immI};
+								else bus_out = {20'd0, immI};
+								x_rde[rs1] = 1;
+
+								out_wre = 1;
+								ALU_tempwre = 1;
+								
+
+								nxt_exec_state = LW_SETALU;
+							end
+							ADD_R: begin
+								x_rde[rs1] = 1;
+
+								ALU_tempwre = 1;
+
+								nxt_exec_state = ADD_SETALU;
+							end
 							default: begin
 								nxt_state = FETCH;
 								nxt_exec_state = DECODE;
@@ -96,7 +132,7 @@ module control_unit(
 					end
 					ADDI_SETRD: begin
 						ALU_rde = 1;
-
+						
 						x_wre[rd] = 1;
 
 						nxt_exec_state = DECODE;
@@ -132,6 +168,75 @@ module control_unit(
 						ALU_rde = 1;
 
 						PC_wre = 1;
+
+						nxt_exec_state = DECODE;
+						nxt_state = FETCH;
+					end
+
+					LUI_SETRD: begin
+
+						out_rde = 1;	
+
+						x_wre[rd] = 1;
+
+						nxt_exec_state = DECODE;
+						nxt_state = FETCH;
+					end
+
+					LW_SETALU: begin
+						out_rde = 1;
+
+						ALU_wre = 1;
+						ALU_oper = ADD;
+
+						nxt_exec_state = LW_SETADDR;
+					end
+
+					LW_SETADDR: begin
+						ALU_rde = 1;
+
+						addr_wre = 1;
+
+						nxt_exec_state = LW_MEMREAD;
+					end
+
+					LW_MEMREAD: begin
+						RAM_rde = 1;
+
+						nxt_exec_state = LW_SETCTRLOUT;
+					end
+
+					LW_SETCTRLOUT: begin
+						bus_out = RAM_data_in;
+						$display("busout: %h", bus_out);
+												
+						out_wre = 1;
+
+						nxt_exec_state = LW_SETRD;
+					end
+
+					LW_SETRD: begin
+						out_rde = 1;
+
+						x_wre[rd] = 1;
+
+						nxt_exec_state = DECODE;
+						nxt_state = FETCH;
+					end
+
+					ADD_SETALU: begin
+						x_rde[rs2] = 1;
+
+						ALU_wre = 1;
+						ALU_oper = ADD;
+
+						nxt_exec_state = ADD_SETRD;
+					end
+
+					ADD_SETRD: begin
+						ALU_rde = 1;
+
+						x_wre[rd] = 1;
 
 						nxt_exec_state = DECODE;
 						nxt_state = FETCH;
@@ -176,7 +281,6 @@ module control_unit(
 
 	always @(posedge clk, posedge reset) begin
 		if (reset) begin
-			x0_wre <= 0;
 			addr_rde <= 1;
 			state <= FETCH;
 			fetch_state <= FETCH_SETADDR;

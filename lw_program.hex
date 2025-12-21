@@ -1,0 +1,38 @@
+// Address 0: 000005B7 (lui a1, 0) -> Base Address = 0
+// Expected Simulation Output
+// x11 (a1): 00000000
+
+// x10 (a0): deadbeef
+
+// PC: 00000008 (looping)
+
+37
+05
+00
+00
+
+// Address 4: 0105A503 (lw a0, 16(a1)) -> Load Word from Addr 16 to a0
+// Hex: 03, A5, 05, 01 (Little Endian bytes)
+03
+A5
+05
+01
+
+// Address 8: 00800067 (jalr zero, 8(zero)) -> HALT Loop
+67
+00
+80
+00
+
+// Address 12 (0xC): Padding/Gap
+00
+00
+00
+00
+
+// Address 16 (0x10): The Data "DEADBEEF"
+// Stored as Little Endian in memory: EF, BE, AD, DE
+EF
+BE
+AD
+DE

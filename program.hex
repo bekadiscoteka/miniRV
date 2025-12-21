@@ -1,5 +1,11 @@
 // Address 0: 01400513 (addi a0, zero, 20)
 // Little Endian: 13, 05, 40, 01
+// Register	Expected Value	Logic
+// x10 (a0)	30	
+// x1 (ra)	12	
+// PC	12	
+// x0	0
+
 13
 05
 40

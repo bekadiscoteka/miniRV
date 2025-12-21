@@ -21,7 +21,7 @@ module RAM32x32 (
 	end
 
 	initial begin
-		$readmemh("program.hex", mem);
+		$readmemh("add_program.hex", mem);
 	end
 
 endmodule

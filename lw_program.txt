@@ -1,0 +1,5 @@
+0:  lui  a1, 0x00000        # Base address = 0x00000000
+4:  lw   a0, 16(a1)         # Load word from address (0 + 16 = 16) into a0
+8:  jalr zero, 8(zero)      # Infinite loop at address 8
+c:  nop                     # (Reserved/Padding)
+10: 0xDEADBEEF              # Data stored at Address 16 (0x10)

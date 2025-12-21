@@ -1,0 +1,4 @@
+0:  lui  a0, 0x12345        # a0 = 0x12345000
+4:  lui  a1, 0xAAAAA        # a1 = 0xAAAAA000
+8:  addi a1, a1, 0x555      # a1 = a1 + 0x555 -> 0xAAAAA555
+c:  jalr zero, 12(zero)     # Infinite loop at address 12 (0xc)
