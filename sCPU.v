@@ -1,141 +1,156 @@
 // sCPU with 3 instructions
+
 `include "alu.v"
 `include "control_unit.v"
 `include "register.v"
 
-module sCPU(
-	output	[7:0]	mem_addr,
-	output			ROM_rde,
+module miniRV (
+	output	[31:0]		RAM_addr,
+	output				RAM_rde,
+						RAM_wre,
 	
-	input	[7:0]	mem_data,	
-	input			CLK,
-   					RST	
+	//output 	[31:0]		RAM_data_out,
+	input	[31:0]		RAM_data_in,	
+
+	input				CLK,
+   						RST	
 );
-	wire [7:0] BUS;
+	wire [31:0] BUS,
+				ctrl_busout;
 
-	wire	ALU_flag,	
+	wire [1:0] ctrl_ALUoper;
+	wire	ALU_eqflag,	
 
-			ctrl_ALUtempinc,
 			ctrl_ALUtemprde,
 			ctrl_ALUwre,
 			ctrl_ALUrde,
 
-			ctrl_reg0wre,
-			ctrl_reg0rde,
-			ctrl_reg1wre,	
-			ctrl_reg1rde,
-			ctrl_reg2wre,
-			ctrl_reg2rde,
-			ctrl_reg3wre,	
-			ctrl_reg3rde,
-			ctrl_pcwre,
-			ctrl_pcrde,
-			ctrl_memwre,
-			ctrl_memrde;
-			
+			ctrl_RAMwre,
+			ctrl_RAMrde,
+
+			ctrl_addrwre,
+			ctrl_addrrde,
+
+			ctrl_busoutwre,
+			ctrl_busoutrde,
+
+			ctrl_PCwre,
+			ctrl_PCrde;
+
+	wire [15:0] ctrl_xrde,
+				ctrl_xwre;
+				
+	wire [31:0] addr_out;
+
+	genvar i;
+
+	generate
+		for (i=1; i <= 15; i = i+1) begin: reg_file // from 1 because x0 is initiated separately
+			REGISTER #(.WIDTH(32)) x(
+				.wre(ctrl_xwre[i]),
+				.rde(ctrl_xrde[i]),
+
+				.reg_out(BUS),
+				.reg_in(BUS),
+
+				.reset(RST),
+				.clk(CLK)		
+			);
+		end	
+	endgenerate
 	
-	ALU #(.WIDTH(8)) alu_unit(   // only adder
+
+	assign RAM_rde = ctrl_RAMrde;
+	assign RAM_wre = ctrl_RAMwre;
+	assign RAM_addr = addr_out;
+		
+	
+	ALU #(.WIDTH(32)) alu_unit(   // only adder
 		.a(BUS),
 		.b(BUS),
-		.temp_inc(ctrl_ALUtempinc),
+		.oper(ctrl_ALUoper),
 		.temp_wre(ctrl_ALUtempwre),
 		.wre(ctrl_ALUwre),
 		.rde(ctrl_ALUrde),
-		.sum(BUS),
-		.flag(ALU_flag),
+		.eq_flag(ALU_eqflag),
+		.out(BUS),
 		.clk(CLK),
 		.reset(RST)
 	);
 
-	control_unit cu(
+	control_unit CU(
 		//
 		.clk(CLK),
 		.reset(RST),
 		//
-		.instr(mem_data),
+		.RAM_data_in(RAM_data_in),
 		
-		.reg0_wre(ctrl_reg0wre),
-		.reg1_wre(ctrl_reg1wre),
-		.reg2_wre(ctrl_reg2wre),
-		.reg3_wre(ctrl_reg3wre),
-		.pc_wre(ctrl_pcwre),
+		.x_wre(ctrl_xwre),
+		.x_rde(ctrl_xrde),
+
+		.PC_wre(ctrl_PCwre),
+		.PC_rde(ctrl_PCrde),
+
+		.addr_wre(ctrl_addrwre),
+		.addr_rde(ctrl_addrrde),
+
 		.ALU_wre(ctrl_ALUwre),
-		.ALU_tempwre(ctrl_ALUtempwre),
-		.mem_wre(ctrl_memwre),
-
-		.reg0_rde(ctrl_reg0rde),
-		.reg1_rde(ctrl_reg1rde),
-		.reg2_rde(ctrl_reg2rde),
-		.reg3_rde(ctrl_reg3rde),
-		.pc_rde(ctrl_pcrde),
 		.ALU_rde(ctrl_ALUrde),
-		//.mem_rde(ctrl_memrde),
-		.ROM_rde(ROM_rde),
 
-		.ALU_tempinc(ctrl_ALUtempinc),
-		.data_out(BUS),
-		.ALU_flag(ALU_flag)
+		.RAM_wre(ctrl_RAMwre),
+		.RAM_rde(ctrl_RAMrde),
+
+		.ALU_tempwre(ctrl_ALUtempwre),
+		.ALU_oper(ctrl_ALUoper),
+
+		.out_wre(ctrl_busoutwre),
+		.out_rde(ctrl_busoutrde),
+
+		.bus_out(ctrl_busout),
+		.ALU_eqflag(ALU_eqflag)
 	);
 
-	REGISTER #(.WIDTH(8)) MR(
-		.wre(ctrl_memwre),
-		.rde(1'b1),//.rde(ctrl_memrde),
-		.reg_out(mem_addr),
+	REGISTER #(.WIDTH(32)) addr(
+		.wre(ctrl_addrwre),
+		.rde(ctrl_addrrde),
+
+		.reg_out(addr_out),
 		.reg_in(BUS),
 
 		.reset(RST),
 		.clk(CLK)		
 	);
 
-	REGISTER #(.WIDTH(8)) PC(
-		.wre(ctrl_pcwre),
-		.rde(ctrl_pcrde),
+	REGISTER #(.WIDTH(32)) x0(
+		.wre(ctrl_xwre[0]),
+		.rde(ctrl_xrde[0]),//.rde(ctrl_memrde),
+
 		.reg_out(BUS),
 		.reg_in(BUS),
 
 		.reset(RST),
 		.clk(CLK)		
 	);
-	REGISTER #(.WIDTH(8)) reg0(
-		.wre(ctrl_reg0wre),
-		.rde(ctrl_reg0rde),
+
+	REGISTER #(.WIDTH(32)) PC(
+		.wre(ctrl_PCwre),
+		.rde(ctrl_PCrde),
 		.reg_out(BUS),
 		.reg_in(BUS),
 
 		.reset(RST),
-		.clk(CLK)
+		.clk(CLK)		
 	);
 
-	REGISTER #(.WIDTH(8)) reg1(
-		.wre(ctrl_reg1wre),
-		.rde(ctrl_reg1rde),
+	REGISTER #(.WIDTH(32)) CTRL_out(
+		.wre(ctrl_busoutwre),
+		.rde(ctrl_busoutrde),
 		.reg_out(BUS),
-		.reg_in(BUS),
+		.reg_in(ctrl_busout),
 
 		.reset(RST),
-		.clk(CLK)
+		.clk(CLK)		
 	);
 
-	REGISTER #(.WIDTH(8)) reg2(
-		.wre(ctrl_reg2wre),
-		.rde(ctrl_reg2rde),
-		.reg_out(BUS),
-		.reg_in(BUS),
-
-		.reset(RST),
-		.clk(CLK)
-	);
-
-	REGISTER #(.WIDTH(8)) reg3(
-		.wre(ctrl_reg3wre),
-		.rde(ctrl_reg3rde),
-		.reg_out(BUS),
-		.reg_in(BUS),
-
-		.reset(RST),
-		.clk(CLK)
-	);
-
-	
 endmodule
 

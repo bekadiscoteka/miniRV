@@ -1,0 +1,41 @@
+// Address 0: 01400513 (addi a0, zero, 20)
+// Little Endian: 13, 05, 40, 01
+13
+05
+40
+01
+
+// Address 4: 010000e7 (jalr ra, 16(zero))
+// Little Endian: e7, 00, 00, 01
+e7
+00
+00
+01
+
+// Address 8: 00c000e7 (jalr ra, 12(zero))
+// Little Endian: e7, 00, c0, 00
+e7
+00
+c0
+00
+
+// Address C (12): 00c00067 (jalr zero, 12(zero)) -> Loop
+// Little Endian: 67, 00, c0, 00
+67
+00
+c0
+00
+
+// Address 10 (16): 00a50513 (addi a0, a0, 10) -> <fun>
+// Little Endian: 13, 05, a5, 00
+13
+05
+a5
+00
+
+// Address 14 (20): 00008067 (jalr zero, 0(ra)) -> Return
+// Little Endian: 67, 80, 00, 00
+67
+80
+00
+00

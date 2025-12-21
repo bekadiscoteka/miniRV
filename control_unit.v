@@ -1,261 +1,194 @@
 // control unit for sCPU
+
 module control_unit(
-	output reg	reg0_wre,	reg0_rde,
+	output reg			PC_wre,			PC_rde,
+						x0_wre, 		x0_rde,
+						addr_wre,		addr_rde,
+						RAM_wre,		RAM_rde,
+						ALU_wre,		ALU_rde,
+						ALU_tempwre, 	
+						out_wre,		out_rde,
+	output reg [1:0] 	ALU_oper,
 
-			reg1_wre, 	reg1_rde,
+	output reg 	[15:0] 	x_rde,	x_wre,
+	output reg	[31:0] 	bus_out,
 
-			reg2_wre, 	reg2_rde,
-
-			reg3_wre, 	reg3_rde,
-				
-			pc_wre,		pc_rde,
-
-			mem_wre, 	//mem_rde,
-					 	ROM_rde,
-		
-			ALU_wre,	ALU_rde,
-			ALU_tempwre, ALU_tempinc,
-			
-	output reg	[7:0] data_out,
-
-	input [7:0] instr,
-	input 		clk, 
-				reset,
-				ALU_flag	
+	input [31:0] 		RAM_data_in,
+	input 				clk, 
+						reset,
+						ALU_eqflag	
 			
 );
-	localparam [2:0] 	EXEC1 =1,
-						EXEC2 =2,
-						EXEC3 =3,
-						EXEC4 =4,
-						EXEC5 =5,
-						LI =2,
-						ADD =0,
-						BNER0 =3,
-						EXEC = 1,
-						FETCH = 2,
-						FETCH1 =1,
-						FETCH2 =2,
-						FETCH3 =3;
+
+	localparam [2:0]	FETCH=0, EXEC=1,
+						FETCH_SETADDR=0, FETCH_SETPC=1,
+						DECODE=0, ADDI_SETALU=1, ADDI_SETRD=2, JALR_INCPC=3, JALR_SETRD=4, JALR_SETALU=5, JALR_SETPC=6,
+						ADD=0, INC=1, ADD_EVEN=2;
+
+	localparam [6:0] 	ADDI=7'b0010011, JALR=7'b1100111;
+						
 
 	reg [2:0] state, exec_state, fetch_state;
+	reg [2:0] nxt_state, nxt_exec_state, nxt_fetch_state;
+	reg [31:0] nxt_instr, instr;
+				
+	wire [6:0] opcode	= RAM_data_in[6:0];
+	wire [4:0] rd		= RAM_data_in[11:7];
+	wire [2:0] funct3	= RAM_data_in[14:12];
+	wire [4:0] rs1		= RAM_data_in[19:15];
+	wire [11:0] immI	= RAM_data_in[31:20];
+
+	always @* begin
+		
+		PC_wre=0;		PC_rde=0;
+				 		x0_rde=0;
+		addr_wre=0;		
+		RAM_wre=0;		RAM_rde=0;
+		ALU_wre=0;		ALU_rde=0;
+		ALU_tempwre=0; 	ALU_oper=0;
+		out_wre=0;		out_rde=0;
+		x_rde=0;		x_wre=0;
+		bus_out=0;		
+
+		nxt_fetch_state = FETCH_SETADDR; nxt_exec_state = DECODE;	nxt_state = state;
+		case (state) 
+			EXEC: begin
+				case (exec_state) 
+					DECODE: begin
+						nxt_instr = RAM_data_in; 
+						case (opcode) 
+							ADDI: begin
+								// sign extention
+								if (immI[11]) bus_out = {{20{1'b1}}, immI};
+								else bus_out = {20'd0, immI};
+								out_wre = 1;
+								
+								x_rde[rs1] = 1;
+
+								ALU_tempwre = 1;	
+
+								nxt_exec_state = ADDI_SETALU;
+							end
+							JALR: begin
+								if (immI[11]) bus_out = {{20{1'b1}}, immI};
+								else bus_out = {20'd0, immI};
+								out_wre = 1;
+
+								x_rde[rs1] = 1;
+
+								ALU_tempwre = 1;
+
+								nxt_exec_state = JALR_INCPC;
+							end
+							default: begin
+								nxt_state = FETCH;
+								nxt_exec_state = DECODE;
+							end
+						endcase	
+					end
+					ADDI_SETALU: begin
+						out_rde = 1;
+						
+						ALU_wre = 1;
+						ALU_oper = ADD;
+
+						nxt_exec_state = ADDI_SETRD;
+					end
+					ADDI_SETRD: begin
+						ALU_rde = 1;
+
+						x_wre[rd] = 1;
+
+						nxt_exec_state = DECODE;
+						nxt_state = FETCH;
+					end
+
+					JALR_INCPC: begin
+						PC_rde = 1;
+
+						ALU_oper = INC;
+						ALU_wre = 1;
+
+						nxt_exec_state = JALR_SETRD;
+					end
+
+					JALR_SETRD: begin
+						ALU_rde = 1;
+
+						x_wre[rd] = 1;
+
+						nxt_exec_state = JALR_SETALU;
+					end
+
+					JALR_SETALU: begin
+						out_rde = 1;						
+
+						ALU_wre = 1;
+						ALU_oper = ADD_EVEN;
+
+						nxt_exec_state = JALR_SETPC;
+					end
+					JALR_SETPC: begin
+						ALU_rde = 1;
+
+						PC_wre = 1;
+
+						nxt_exec_state = DECODE;
+						nxt_state = FETCH;
+					end
+
+					default: begin
+						nxt_exec_state = DECODE;
+						nxt_state = FETCH;
+					end
+
+				endcase
+			end
+			FETCH: begin
+				case (fetch_state) 
+					FETCH_SETADDR: begin
+
+						PC_rde = 1;
+
+						addr_wre = 1;
+						ALU_wre = 1;
+						ALU_oper = INC;
+
+						nxt_fetch_state = FETCH_SETPC;
+					end
+					FETCH_SETPC: begin
+
+						ALU_rde = 1;
+
+						PC_wre = 1;
+						RAM_rde = 1;   // rde is clock triggered so it will output at next clock cycle
+
+						nxt_state = EXEC;
+						nxt_fetch_state = FETCH_SETADDR;
+						nxt_exec_state = DECODE;
+					end
+					default: nxt_fetch_state = FETCH_SETADDR;
+				endcase	
+			end
+			default: nxt_state = FETCH; 
+		endcase
+	end		
 
 	always @(posedge clk, posedge reset) begin
 		if (reset) begin
+			x0_wre <= 0;
+			addr_rde <= 1;
 			state <= FETCH;
-			exec_state <= EXEC1;
-			fetch_state <= FETCH1;
-			pc_wre <= 0; pc_rde <= 0;
-			mem_wre	<= 0; mem_wre <= 0;
-			ALU_wre <= 0; ALU_rde <= 0;
-			reg0_wre <= 0; reg0_rde <= 0;
-			reg1_wre <= 0; reg1_rde <= 0;
-			reg2_wre <= 0; reg2_rde <= 0;
-			reg3_wre <= 0; reg3_rde <= 0;
-			data_out <= 8'bz;
-			ROM_rde <= 1;
+			fetch_state <= FETCH_SETADDR;
+			exec_state <= DECODE;
+			instr <= 0;
 		end
-		case (state) 
-			EXEC: 
-				case (instr[7:6]) // opcode
-					LI: begin		
-						case (exec_state) 
-							EXEC1: begin
-								// reset 
-								
+		else begin
+			fetch_state <= nxt_fetch_state;
+			state <= nxt_state;
+			exec_state <= nxt_exec_state;
+			instr <= nxt_instr;
+		end
+	end
 
-								case (instr[5:4])  
-									0: begin
-										reg0_wre <= 1;
-										data_out <= {4'd0, instr[3:0]};
-										exec_state <= EXEC2;
-									end	
-									1: begin
-										reg1_wre <= 1;	
-										data_out <= {4'd0, instr[3:0]};
-										exec_state <= EXEC2;
-									end
-									2: begin
-										reg2_wre <= 1;
-										data_out <= {4'd0, instr[3:0]};
-										exec_state <= EXEC2;
-									end
-									3: begin
-										reg3_wre <= 1;
-										data_out <= {4'd0, instr[3:0]};
-										exec_state <= EXEC2;
-									end
-								endcase
-							end
-							EXEC2: begin
-								reg0_wre <= 0;
-								reg1_wre <= 0;
-								reg2_wre <= 0;
-								reg3_wre <= 0;
-								data_out <= 8'bz;	
-								
-								state <= FETCH;			
-								exec_state <= EXEC1;
-							end
-						endcase	
-					end
-					ADD: begin
-						case (exec_state) 
-							EXEC1: begin
-								ALU_tempwre <= 1;
-								exec_state <= EXEC2;
-								case (instr[3:2]) 
-									0: reg0_rde <= 1;
-									1: reg1_rde <= 1;
-									2: reg2_rde <= 1;
-									3: reg3_rde <= 1;
-								endcase
-							end
-							EXEC2: begin
-								ALU_tempwre <= 0;
-
-								ALU_wre <= 1;
-								exec_state <= EXEC3; 
-								case (instr[1:0]) 
-									0: begin
-										reg1_rde <= 0;
-										reg2_rde <= 0;
-										reg3_rde <= 0;
-
-									   	reg0_rde <= 1;
-									end
-									1: begin
-										reg0_rde <= 0;
-										reg2_rde <= 0;
-										reg3_rde <= 0;
-
-									   	reg1_rde <= 1;
-									end
-									2: begin
-										reg0_rde <= 0;
-										reg1_rde <= 0;
-										reg3_rde <= 0;
-
-										reg2_rde <= 1;
-
-									end
-									3: begin
-										reg0_rde <= 0;
-										reg2_rde <= 0;
-										reg1_rde <= 0;
-
-										reg3_rde <= 1;
-									end
-								endcase
-							end
-							EXEC3: begin
-								reg0_rde <= 0;
-								reg2_rde <= 0;
-								reg1_rde <= 0;
-								reg3_rde <= 0;
-
-								ALU_rde <= 1;
-								exec_state <= EXEC4;
-								case (instr[5:4]) 
-									0: reg0_wre <= 1;
-									1: reg1_wre <= 1;
-									2: reg2_wre <= 1;
-									3: reg3_wre <= 1;
-								endcase
-							end
-							EXEC4: begin
-								reg0_wre <= 0;
-								reg1_wre <= 0;
-								reg2_wre <= 0;
-								reg3_wre <= 0;	
-								ALU_rde <= 0;
-
-								exec_state <= EXEC1;
-								state <= FETCH;
-							end
-						endcase
-					end
-					BNER0: begin
-						case (exec_state)
-							EXEC1: begin
-								ALU_tempwre <= 1;
-								case (instr[1:0]) 
-									0: reg0_rde <= 1;
-									1: reg1_rde <= 1;
-									2: reg2_rde <= 1;
-									3: reg3_rde <= 1;
-								endcase	
-								exec_state <= EXEC2;
-							end
-							EXEC2: begin
-								ALU_tempwre <= 0;
-								reg1_rde <= 0;
-								reg2_rde <= 0;
-								reg3_rde <= 0;
-
-								reg0_rde <= 1;
-								ALU_wre <= 1;
-								exec_state <= EXEC3;
-							end
-							EXEC3: begin
-								ALU_wre <= 0;
-								reg0_rde <= 0;
-								exec_state <= EXEC4;
-
-								// wait cycle
-							end
-							EXEC4: begin
-								if (!ALU_flag) begin
-									exec_state <= EXEC5;	
-									data_out <= {4'b0,instr[5:2]};
-									pc_wre <= 1;	
-								end			
-								else begin
-									exec_state <= EXEC1;
-									state <= FETCH;
-								end
-							end
-							EXEC5: begin
-								data_out <= 8'bz;
-								pc_wre <= 0;
-								exec_state <= EXEC1;
-								state <= FETCH;
-							end
-						endcase	
-					end
-				endcase
-			FETCH: begin
-				case (fetch_state) 
-					FETCH1: begin
-						pc_rde <= 1;
-						mem_wre <= 1;		
-						ALU_wre <= 1;
-						ALU_tempinc <= 1;
-						fetch_state <= FETCH2;
-					end	
-					FETCH2: begin
-						// reset values
-						pc_rde <= 0;
-						mem_wre <= 0;		
-						ALU_wre <= 0;							
-						ALU_tempinc <= 0;	
-						/////////////////
-						
-						ALU_rde <= 1;
-						pc_wre <= 1;	
-						fetch_state <= FETCH3;						
-					end
-					FETCH3: begin
-						// reset previous
-						ALU_rde <= 0;
-						pc_wre <= 0;
-
-						fetch_state <= FETCH1;
-						state <= EXEC;
-						exec_state <= EXEC1;
-					end
-				endcase	
-			end
-		endcase
-	end		
 endmodule

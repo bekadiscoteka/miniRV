@@ -6,7 +6,7 @@ module REGISTER #(
 	input wre, rde, clk, reset	
 );	
 	reg [WIDTH-1:0] _reg_out;
-	assign reg_out = rde ? _reg_out : 8'b?; 	
+	assign reg_out = rde ? _reg_out : {WIDTH{1'bz}}; 	
 
 	always @(posedge clk, posedge reset) begin
 		if (reset) begin
