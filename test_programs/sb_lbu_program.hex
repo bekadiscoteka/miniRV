@@ -1,0 +1,31 @@
+// Address 0: 00400593 (addi a1, zero, 4)
+93
+05
+40
+00
+
+// Address 4: 0AA00613 (addi a2, zero, 0xAA)
+13
+06
+A0
+0A
+
+// Address 8: 00C58023 (sb a2, 0(a1))
+// Funct3=000 (sb). Opcode=0100011.
+23
+80
+C5
+00
+
+// Address 12 (C): 0005C503 (lbu a0, 0(a1))
+// Funct3=100 (lbu). Opcode=0000011.
+03
+C5
+05
+00
+
+// Address 16 (10): Halt
+67
+00
+00
+01

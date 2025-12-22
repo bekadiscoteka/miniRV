@@ -1,0 +1,884 @@
+// Byte-addressable hex file for miniRV sum program
+// Format: one byte per line, can be read by $readmemh
+
+// Address 0x00000000: addi s0,zero,0
+13
+04
+00
+00
+
+// Address 0x00000004: lui sp,0x51
+37
+11
+05
+00
+
+// Address 0x00000008: addi sp,sp,0
+13
+01
+01
+00
+
+// Address 0x0000000C: addi ra,zero,556
+93
+00
+c0
+22
+
+// Address 0x00000010: jalr ra,0(ra)
+e7
+80
+00
+00
+
+// Address 0x00000014: sw a0,-16(sp)
+23
+28
+a1
+fe
+
+// Address 0x00000018: sw s0,-4(sp)
+23
+2e
+81
+fe
+
+// Address 0x0000001C: addi s0,zero,1032
+13
+04
+80
+40
+
+// Address 0x00000020: lbu gp,-16(sp)
+83
+41
+01
+ff
+
+// Address 0x00000024: add gp,s0,gp
+b3
+01
+34
+00
+
+// Address 0x00000028: lbu gp,0(gp)
+83
+c1
+01
+00
+
+// Address 0x0000002C: lbu tp,-15(sp)
+03
+42
+11
+ff
+
+// Address 0x00000030: add tp,s0,tp
+33
+02
+44
+00
+
+// Address 0x00000034: lbu tp,0(tp)
+03
+42
+02
+00
+
+// Address 0x00000038: add gp,gp,tp
+b3
+81
+41
+00
+
+// Address 0x0000003C: lbu tp,-14(sp)
+03
+42
+21
+ff
+
+// Address 0x00000040: add tp,s0,tp
+33
+02
+44
+00
+
+// Address 0x00000044: lbu tp,0(tp)
+03
+42
+02
+00
+
+// Address 0x00000048: add gp,gp,tp
+b3
+81
+41
+00
+
+// Address 0x0000004C: lbu tp,-13(sp)
+03
+42
+31
+ff
+
+// Address 0x00000050: add tp,s0,tp
+33
+02
+44
+00
+
+// Address 0x00000054: lbu tp,0(tp)
+03
+42
+02
+00
+
+// Address 0x00000058: add gp,gp,tp
+b3
+81
+41
+00
+
+// Address 0x0000005C: addi tp,zero,1024
+13
+02
+00
+40
+
+// Address 0x00000060: add tp,tp,gp
+33
+02
+32
+00
+
+// Address 0x00000064: lbu tp,0(tp)
+03
+42
+02
+00
+
+// Address 0x00000068: lw s0,-4(sp)
+03
+24
+c1
+ff
+
+// Address 0x0000006C: add tp,tp,tp
+33
+02
+42
+00
+
+// Address 0x00000070: add tp,tp,tp
+33
+02
+42
+00
+
+// Address 0x00000074: add tp,sp,tp
+33
+02
+41
+00
+
+// Address 0x00000078: addi gp,zero,148
+93
+01
+40
+09
+
+// Address 0x0000007C: sw gp,-16(sp)
+23
+28
+31
+fe
+
+// Address 0x00000080: addi gp,zero,144
+93
+01
+00
+09
+
+// Address 0x00000084: sw gp,-20(sp)
+23
+26
+31
+fe
+
+// Address 0x00000088: lw tp,-20(tp)
+03
+22
+c2
+fe
+
+// Address 0x0000008C: jalr zero,0(tp)
+67
+00
+02
+00
+
+// Address 0x00000090: jalr zero,0(ra)
+67
+80
+00
+00
+
+// Address 0x00000094: addi sp,sp,-12
+13
+01
+41
+ff
+
+// Address 0x00000098: addi a0,zero,1
+13
+05
+10
+00
+
+// Address 0x0000009C: sw ra,8(sp)
+23
+24
+11
+00
+
+// Address 0x000000A0: addi ra,zero,548
+93
+00
+40
+22
+
+// Address 0x000000A4: jalr ra,0(ra)
+e7
+80
+00
+00
+
+// Address 0x000000A8: addi sp,sp,-16
+13
+01
+01
+ff
+
+// Address 0x000000AC: sw ra,12(sp)
+23
+26
+11
+00
+
+// Address 0x000000B0: sw zero,0(sp)
+23
+20
+01
+00
+
+// Address 0x000000B4: addi a5,zero,1
+93
+07
+10
+00
+
+// Address 0x000000B8: addi a3,zero,101
+93
+06
+50
+06
+
+// Address 0x000000BC: lw a4,0(sp)
+03
+27
+01
+00
+
+// Address 0x000000C0: add a4,a4,a5
+33
+07
+f7
+00
+
+// Address 0x000000C4: sw a4,0(sp)
+23
+20
+e1
+00
+
+// Address 0x000000C8: addi a5,a5,1
+93
+87
+17
+00
+
+// Address 0x000000CC: sw a5,-16(sp)
+23
+28
+f1
+fe
+
+// Address 0x000000D0: sw a3,-20(sp)
+23
+26
+d1
+fe
+
+// Address 0x000000D4: sw s0,-4(sp)
+23
+2e
+81
+fe
+
+// Address 0x000000D8: sw s1,-8(sp)
+23
+2c
+91
+fe
+
+// Address 0x000000DC: addi s0,zero,768
+13
+04
+00
+30
+
+// Address 0x000000E0: lbu gp,-16(sp)
+83
+41
+01
+ff
+
+// Address 0x000000E4: add tp,s0,gp
+33
+02
+34
+00
+
+// Address 0x000000E8: addi gp,zero,1
+93
+01
+10
+00
+
+// Address 0x000000EC: sb gp,0(tp)
+23
+00
+32
+00
+
+// Address 0x000000F0: lbu gp,-20(sp)
+83
+41
+c1
+fe
+
+// Address 0x000000F4: add gp,s0,gp
+b3
+01
+34
+00
+
+// Address 0x000000F8: sb zero,0(gp)
+23
+80
+01
+00
+
+// Address 0x000000FC: lbu gp,0(tp)
+83
+41
+02
+00
+
+// Address 0x00000100: lbu s1,-15(sp)
+83
+44
+11
+ff
+
+// Address 0x00000104: add tp,s0,s1
+33
+02
+94
+00
+
+// Address 0x00000108: addi s1,zero,1
+93
+04
+10
+00
+
+// Address 0x0000010C: sb s1,0(tp)
+23
+00
+92
+00
+
+// Address 0x00000110: lbu s1,-19(sp)
+83
+44
+d1
+fe
+
+// Address 0x00000114: add s1,s0,s1
+b3
+04
+94
+00
+
+// Address 0x00000118: sb zero,0(s1)
+23
+80
+04
+00
+
+// Address 0x0000011C: lbu s1,0(tp)
+83
+44
+02
+00
+
+// Address 0x00000120: add gp,gp,s1
+b3
+81
+91
+00
+
+// Address 0x00000124: lbu s1,-14(sp)
+83
+44
+21
+ff
+
+// Address 0x00000128: add tp,s0,s1
+33
+02
+94
+00
+
+// Address 0x0000012C: addi s1,zero,1
+93
+04
+10
+00
+
+// Address 0x00000130: sb s1,0(tp)
+23
+00
+92
+00
+
+// Address 0x00000134: lbu s1,-18(sp)
+83
+44
+e1
+fe
+
+// Address 0x00000138: add s1,s0,s1
+b3
+04
+94
+00
+
+// Address 0x0000013C: sb zero,0(s1)
+23
+80
+04
+00
+
+// Address 0x00000140: lbu s1,0(tp)
+83
+44
+02
+00
+
+// Address 0x00000144: add gp,gp,s1
+b3
+81
+91
+00
+
+// Address 0x00000148: lbu s1,-13(sp)
+83
+44
+31
+ff
+
+// Address 0x0000014C: add tp,s0,s1
+33
+02
+94
+00
+
+// Address 0x00000150: addi s1,zero,1
+93
+04
+10
+00
+
+// Address 0x00000154: sb s1,0(tp)
+23
+00
+92
+00
+
+// Address 0x00000158: lbu s1,-17(sp)
+83
+44
+f1
+fe
+
+// Address 0x0000015C: add s1,s0,s1
+b3
+04
+94
+00
+
+// Address 0x00000160: sb zero,0(s1)
+23
+80
+04
+00
+
+// Address 0x00000164: lbu s1,0(tp)
+83
+44
+02
+00
+
+// Address 0x00000168: add gp,gp,s1
+b3
+81
+91
+00
+
+// Address 0x0000016C: addi tp,zero,1024
+13
+02
+00
+40
+
+// Address 0x00000170: add tp,tp,gp
+33
+02
+32
+00
+
+// Address 0x00000174: lbu tp,0(tp)
+03
+42
+02
+00
+
+// Address 0x00000178: lw s1,-8(sp)
+83
+24
+81
+ff
+
+// Address 0x0000017C: lw s0,-4(sp)
+03
+24
+c1
+ff
+
+// Address 0x00000180: add tp,tp,tp
+33
+02
+42
+00
+
+// Address 0x00000184: add tp,tp,tp
+33
+02
+42
+00
+
+// Address 0x00000188: add tp,sp,tp
+33
+02
+41
+00
+
+// Address 0x0000018C: addi gp,zero,420
+93
+01
+40
+1a
+
+// Address 0x00000190: sw gp,-16(sp)
+23
+28
+31
+fe
+
+// Address 0x00000194: addi gp,zero,188
+93
+01
+c0
+0b
+
+// Address 0x00000198: sw gp,-20(sp)
+23
+26
+31
+fe
+
+// Address 0x0000019C: lw tp,-20(tp)
+03
+22
+c2
+fe
+
+// Address 0x000001A0: jalr zero,0(tp)
+67
+00
+02
+00
+
+// Address 0x000001A4: lw a0,0(sp)
+03
+25
+01
+00
+
+// Address 0x000001A8: lui a5,0xfffff
+b7
+f7
+ff
+ff
+
+// Address 0x000001AC: addi a5,a5,-954
+93
+87
+67
+c4
+
+// Address 0x000001B0: add a0,a0,a5
+33
+05
+f5
+00
+
+// Address 0x000001B4: sw a0,-16(sp)
+23
+28
+a1
+fe
+
+// Address 0x000001B8: sw s0,-4(sp)
+23
+2e
+81
+fe
+
+// Address 0x000001BC: addi s0,zero,1032
+13
+04
+80
+40
+
+// Address 0x000001C0: lbu gp,-16(sp)
+83
+41
+01
+ff
+
+// Address 0x000001C4: add gp,s0,gp
+b3
+01
+34
+00
+
+// Address 0x000001C8: lbu gp,0(gp)
+83
+c1
+01
+00
+
+// Address 0x000001CC: lbu tp,-15(sp)
+03
+42
+11
+ff
+
+// Address 0x000001D0: add tp,s0,tp
+33
+02
+44
+00
+
+// Address 0x000001D4: lbu tp,0(tp)
+03
+42
+02
+00
+
+// Address 0x000001D8: add gp,gp,tp
+b3
+81
+41
+00
+
+// Address 0x000001DC: lbu tp,-14(sp)
+03
+42
+21
+ff
+
+// Address 0x000001E0: add tp,s0,tp
+33
+02
+44
+00
+
+// Address 0x000001E4: lbu tp,0(tp)
+03
+42
+02
+00
+
+// Address 0x000001E8: add gp,gp,tp
+b3
+81
+41
+00
+
+// Address 0x000001EC: lbu tp,-13(sp)
+03
+42
+31
+ff
+
+// Address 0x000001F0: add tp,s0,tp
+33
+02
+44
+00
+
+// Address 0x000001F4: lbu tp,0(tp)
+03
+42
+02
+00
+
+// Address 0x000001F8: add gp,gp,tp
+b3
+81
+41
+00
+
+// Address 0x000001FC: addi tp,zero,1024
+13
+02
+00
+40
+
+// Address 0x00000200: add tp,tp,gp
+33
+02
+32
+00
+
+// Address 0x00000204: lbu a0,0(tp)
+03
+45
+02
+00
+
+// Address 0x00000208: lw s0,-4(sp)
+03
+24
+c1
+ff
+
+// Address 0x0000020C: addi ra,zero,20
+93
+00
+40
+01
+
+// Address 0x00000210: jalr ra,0(ra)
+e7
+80
+00
+00
+
+// Address 0x00000214: lw ra,12(sp)
+83
+20
+c1
+00
+
+// Address 0x00000218: addi a0,zero,0
+13
+05
+00
+00
+
+// Address 0x0000021C: addi sp,sp,16
+13
+01
+01
+01
+
+// Address 0x00000220: jalr zero,0(ra)
+67
+80
+00
+00
+
+// Address 0x00000224: addi tp,zero,548
+13
+02
+40
+22
+
+// Address 0x00000228: jalr zero,0(tp)
+67
+00
+02
+00
+
+// Address 0x0000022C: addi sp,sp,-12
+13
+01
+41
+ff
+
+// Address 0x00000230: lui a0,0x48
+37
+85
+04
+00
+
+// Address 0x00000234: addi a0,a0,1536
+13
+05
+05
+60
+
+// Address 0x00000238: sw ra,8(sp)
+23
+24
+11
+00
+
+// Address 0x0000023C: addi ra,zero,168
+93
+00
+80
+0a
+
+// Address 0x00000240: jalr ra,0(ra)
+e7
+80
+00
+00
+
+// Address 0x00000244: addi ra,zero,548
+93
+00
+40
+22
+
+// Address 0x00000248: jalr ra,0(ra)
+e7
+80
+00
+00

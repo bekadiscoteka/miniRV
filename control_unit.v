@@ -3,7 +3,7 @@
 module control_unit(
 	output reg			PC_wre,			PC_rde,
 						addr_wre,		addr_rde,
-						RAM_wre,		RAM_rde,
+						RAM_wre,		RAM_rde,	RAM_datawre, RAM_isbyte,
 						ALU_wre,		ALU_rde,
 						ALU_tempwre, 	
 						out_wre,		out_rde,
@@ -26,19 +26,21 @@ module control_unit(
 	localparam [6:0] 	ADDI=7'b0010011, JALR=7'b1100111,
 						LUI=7'b0110111,
 						LW=7'b0000011,
-						ADD_R=7'b0110011;
+						ADD_R=7'b0110011,
+						SW=7'b0100011;
 						
 
-	localparam [3:0] 	DECODE=0, 
+	localparam [4:0] 	DECODE=0,  // upto 32 
 						ADDI_SETALU=1, ADDI_SETRD=2, 
 						JALR_INCPC=3, JALR_SETRD=4, JALR_SETALU=5, JALR_SETPC=6, 
 						LUI_SETRD=7, 
 						LW_SETALU=8, LW_SETADDR=9, LW_MEMREAD=10, LW_SETCTRLOUT=11, LW_SETRD=12,
-						ADD_SETALU=13, ADD_SETRD=14;
+						ADD_SETALU=13, ADD_SETRD=14,
+						SW_SETALU=15, SW_SETADDR=16, SW_SETRAMREG=17, SW_SETRAM=18; 
 						
 
 	reg [2:0] state, nxt_state, fetch_state, nxt_fetch_state;
-	reg [3:0] exec_state, nxt_exec_state;
+	reg [4:0] exec_state, nxt_exec_state;
 	reg [31:0] nxt_instr, instr;
 				
 	wire [6:0] opcode	= nxt_instr[6:0];
@@ -48,17 +50,18 @@ module control_unit(
 	wire [4:0] rs2		= nxt_instr[24:20];
 	wire [11:0] immI	= nxt_instr[31:20];
 	wire [19:0] immU 	= nxt_instr[31:12];
+	wire [11:0] immS 	= {nxt_instr[31:25], nxt_instr[11:7]};
 
 	always @* begin
 		
 		PC_wre=0;		PC_rde=0;
 		addr_wre=0;		
-		RAM_wre=0;		RAM_rde=0;
+		RAM_wre=0;		RAM_rde=0; RAM_datawre=0; RAM_isbyte=0;
 		ALU_wre=0;		ALU_rde=0;
 		ALU_tempwre=0; 	ALU_oper=0;
 		out_wre=0;		out_rde=0;
 		x_rde=0;		x_wre=0;
-		bus_out=0;		
+		bus_out=0;		addr_rde=1;
 		nxt_instr=instr;
 
 		nxt_fetch_state = FETCH_SETADDR; nxt_exec_state = DECODE;	nxt_state = state;
@@ -89,7 +92,7 @@ module control_unit(
 
 								ALU_tempwre = 1;
 
-								nxt_exec_state = JALR_INCPC;
+								nxt_exec_state = JALR_SETRD;
 							end
 							LUI: begin
 								bus_out = {immU, 12'd0};
@@ -115,6 +118,16 @@ module control_unit(
 								ALU_tempwre = 1;
 
 								nxt_exec_state = ADD_SETALU;
+							end
+							SW: begin
+								if (immS[11]) bus_out = {{20{1'b1}}, immS};
+								else bus_out = {20'd0, immS};
+								x_rde[rs1] = 1;
+
+								out_wre = 1;
+								ALU_tempwre = 1;
+
+								nxt_exec_state = SW_SETALU;
 							end
 							default: begin
 								nxt_state = FETCH;
@@ -149,7 +162,8 @@ module control_unit(
 					end
 
 					JALR_SETRD: begin
-						ALU_rde = 1;
+						// ALU_rde = 1;
+						PC_rde = 1;
 
 						x_wre[rd] = 1;
 
@@ -207,8 +221,11 @@ module control_unit(
 					end
 
 					LW_SETCTRLOUT: begin
-						bus_out = RAM_data_in;
-						$display("busout: %h", bus_out);
+
+						case (funct3) 
+							3'b100: bus_out = {24'd0, RAM_data_in[7:0]}; // lbu
+							default: bus_out = RAM_data_in;  // lw
+						endcase
 												
 						out_wre = 1;
 
@@ -237,6 +254,42 @@ module control_unit(
 						ALU_rde = 1;
 
 						x_wre[rd] = 1;
+
+						nxt_exec_state = DECODE;
+						nxt_state = FETCH;
+					end
+
+					SW_SETALU: begin
+						out_rde = 1;
+
+						ALU_wre = 1;
+						ALU_oper = ADD;
+
+						nxt_exec_state = SW_SETADDR;
+					end
+
+					SW_SETADDR: begin
+						ALU_rde = 1;
+						
+						addr_wre = 1;
+
+						nxt_exec_state = SW_SETRAMREG;
+					end
+					SW_SETRAMREG: begin
+						x_rde[rs2] = 1;
+
+						RAM_datawre = 1;
+
+						nxt_exec_state = SW_SETRAM;
+					end
+
+					SW_SETRAM: begin
+						RAM_wre = 1;
+
+						case (funct3) 
+							3'b000: RAM_isbyte = 1;
+							default: RAM_isbyte = 0;
+						endcase
 
 						nxt_exec_state = DECODE;
 						nxt_state = FETCH;
@@ -281,7 +334,6 @@ module control_unit(
 
 	always @(posedge clk, posedge reset) begin
 		if (reset) begin
-			addr_rde <= 1;
 			state <= FETCH;
 			fetch_state <= FETCH_SETADDR;
 			exec_state <= DECODE;

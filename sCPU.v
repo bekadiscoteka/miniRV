@@ -8,8 +8,9 @@ module miniRV (
 	output	[31:0]		RAM_addr,
 	output				RAM_rde,
 						RAM_wre,
+						RAM_isbyte,
 	
-	//output 	[31:0]		RAM_data_out,
+	output 	[31:0]		RAM_data_out,
 	input	[31:0]		RAM_data_in,	
 
 	input				CLK,
@@ -27,6 +28,7 @@ module miniRV (
 
 			ctrl_RAMwre,
 			ctrl_RAMrde,
+			ctrl_RAMdatawre,
 
 			ctrl_addrwre,
 			ctrl_addrrde,
@@ -99,6 +101,8 @@ module miniRV (
 
 		.RAM_wre(ctrl_RAMwre),
 		.RAM_rde(ctrl_RAMrde),
+		.RAM_isbyte(RAM_isbyte),
+		.RAM_datawre(ctrl_RAMdatawre),
 
 		.ALU_tempwre(ctrl_ALUtempwre),
 		.ALU_oper(ctrl_ALUoper),
@@ -115,6 +119,17 @@ module miniRV (
 		.rde(ctrl_addrrde),
 
 		.reg_out(addr_out),
+		.reg_in(BUS),
+
+		.reset(RST),
+		.clk(CLK)		
+	);
+
+	REGISTER #(.WIDTH(32)) RAM_dataout(
+		.wre(ctrl_RAMdatawre),
+		.rde(1'b1),
+
+		.reg_out(RAM_data_out),
 		.reg_in(BUS),
 
 		.reset(RST),

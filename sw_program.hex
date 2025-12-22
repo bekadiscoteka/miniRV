@@ -1,0 +1,27 @@
+// 0: addi a1, zero, 4 (Base Address = 4)
+// Hex: 00400593
+// Expected Result: After the simulation runs, check mem[4] in your RAM module. It should contain 0x58 (88). The register x0-x31 will not change during the sw step, but the RAM content // at address 4 will change.
+93
+05
+40
+00
+
+// 4: addi a2, zero, 88 (Data = 88 / 0x58)
+// Hex: 05800613
+13
+06
+80
+05
+
+// 8: sw a2, 0(a1)  -> Store 88 at Mem[4 + 0] = Mem[4]
+// Hex: 00C5A023 (rs2=12, rs1=11, imm=0)
+23
+A0
+C5
+00
+
+// 12: jalr zero, 12(zero) -> Halt
+67
+00
+C0
+00

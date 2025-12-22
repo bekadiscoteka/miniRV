@@ -27,7 +27,7 @@ module ALU #(
 				case (oper) 
 					ADD: _sum = a + temp;
 					INC: _sum = a + 4;
-					ADD_EVEN: _sum = (a + temp) & ~31'b1;  // for jalr
+					ADD_EVEN: _sum = (a + temp) & ~32'b1;  // for jalr
 				endcase
 			end
 			if (temp_wre) temp <= b;		
