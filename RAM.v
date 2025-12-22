@@ -86,9 +86,9 @@ module RAM32x32 (
 );
 
     // 128 bytes of memory
-    reg [7:0] mem [0:16777215];
+    reg [7:0] mem [0:65_535];
 
-    wire [23:0] addr = address[23:0];
+    wire [15:0] addr = address[15:0];
 
     always @(posedge clk) begin
         if (reset) begin
@@ -118,12 +118,13 @@ module RAM32x32 (
 
 	reg [23:0] i;
 
-	initial begin; 
-		for (i = 0; i<32; i=i+1) begin
-			mem[i] = 8'b0;
-		end
+	initial begin 
         $readmemh("test_programs/program_dump.hex", mem);
-		$display("mem[max] ==", mem[{24{0}};
+		for (i = 0; i<={16{1'b1}}; i=i+1) begin
+			if (mem[i] === 8'bx) mem[i] = 8'b0;
+			$display("counter == %b", i);
+		end
+		$display("mem[max] ==", mem[16'hFFFF]); 
     end
 
 endmodule

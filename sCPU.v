@@ -1,6 +1,6 @@
 // sCPU with 3 instructions
 
-`include "alu.v"
+`include "ALU.v"
 `include "control_unit.v"
 `include "register.v"
 
@@ -22,7 +22,7 @@ module miniRV (
 	wire [1:0] ctrl_ALUoper;
 	wire	ALU_eqflag,	
 
-			ctrl_ALUtemprde,
+			ctrl_ALUtempwre,
 			ctrl_ALUwre,
 			ctrl_ALUrde,
 
@@ -39,8 +39,8 @@ module miniRV (
 			ctrl_PCwre,
 			ctrl_PCrde;
 
-	wire [15:0] ctrl_xrde,
-				ctrl_xwre;
+	wire [15:0] 	ctrl_xrde,
+			ctrl_xwre;
 				
 	wire [31:0] addr_out;
 

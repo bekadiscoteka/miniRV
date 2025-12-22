@@ -25,9 +25,10 @@ module ALU #(
 			if (wre) begin
 				eq_flag <= a == temp;
 				case (oper) 
-					ADD: _sum = a + temp;
-					INC: _sum = a + 4;
-					ADD_EVEN: _sum = (a + temp) & ~32'b1;  // for jalr
+					ADD: _sum <= a + temp;
+					INC: _sum <= a + 4;
+					ADD_EVEN: _sum <= (a + temp) & ~32'b1;  // for jalr
+					default: _sum <= a + temp;
 				endcase
 			end
 			if (temp_wre) temp <= b;		

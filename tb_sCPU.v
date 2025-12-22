@@ -52,6 +52,11 @@ module stimulus;
 		
 		#1000000;		
 
+		while (cpu.reg_file[10].x._reg_out != 0) begin
+			#1000;
+			$display("x15 = %d", cpu.reg_file[15].x._reg_out);
+		end
+
 		$display("x1 = %h", cpu.reg_file[1].x._reg_out); 
 		$display("x2 = %h", cpu.reg_file[2].x._reg_out);
 		$display("x3 = %h", cpu.reg_file[3].x._reg_out);

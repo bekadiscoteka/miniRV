@@ -19,9 +19,9 @@ module control_unit(
 			
 );
 
+	localparam [1:0] 	ADD=0, INC=1, ADD_EVEN=2;
 	localparam [2:0]	FETCH=0, EXEC=1,
-						FETCH_SETADDR=0, FETCH_SETPC=1,
-						ADD=0, INC=1, ADD_EVEN=2;
+						FETCH_SETADDR=0, FETCH_SETPC=1;
 
 	localparam [6:0] 	ADDI=7'b0010011, JALR=7'b1100111,
 						LUI=7'b0110111,
@@ -77,7 +77,7 @@ module control_unit(
 								else bus_out = {20'd0, immI};
 								out_wre = 1;
 								
-								x_rde[rs1] = 1;
+								x_rde[rs1[3:0]] = 1;
 
 								ALU_tempwre = 1;	
 
@@ -88,7 +88,7 @@ module control_unit(
 								else bus_out = {20'd0, immI};
 								out_wre = 1;
 
-								x_rde[rs1] = 1;
+								x_rde[rs1[3:0]] = 1;
 
 								ALU_tempwre = 1;
 
@@ -104,7 +104,7 @@ module control_unit(
 							LW: begin
 								if (immI[11]) bus_out = {{20{1'b1}}, immI};
 								else bus_out = {20'd0, immI};
-								x_rde[rs1] = 1;
+								x_rde[rs1[3:0]] = 1;
 
 								out_wre = 1;
 								ALU_tempwre = 1;
@@ -113,7 +113,7 @@ module control_unit(
 								nxt_exec_state = LW_SETALU;
 							end
 							ADD_R: begin
-								x_rde[rs1] = 1;
+								x_rde[rs1[3:0]] = 1;
 
 								ALU_tempwre = 1;
 
@@ -122,7 +122,7 @@ module control_unit(
 							SW: begin
 								if (immS[11]) bus_out = {{20{1'b1}}, immS};
 								else bus_out = {20'd0, immS};
-								x_rde[rs1] = 1;
+								x_rde[rs1[3:0]] = 1;
 
 								out_wre = 1;
 								ALU_tempwre = 1;
@@ -146,7 +146,7 @@ module control_unit(
 					ADDI_SETRD: begin
 						ALU_rde = 1;
 						
-						x_wre[rd] = 1;
+						x_wre[rd[3:0]] = 1;
 
 						nxt_exec_state = DECODE;
 						nxt_state = FETCH;
@@ -165,7 +165,7 @@ module control_unit(
 						// ALU_rde = 1;
 						PC_rde = 1;
 
-						x_wre[rd] = 1;
+						x_wre[rd[3:0]] = 1;
 
 						nxt_exec_state = JALR_SETALU;
 					end
@@ -191,7 +191,7 @@ module control_unit(
 
 						out_rde = 1;	
 
-						x_wre[rd] = 1;
+						x_wre[rd[3:0]] = 1;
 
 						nxt_exec_state = DECODE;
 						nxt_state = FETCH;
@@ -235,14 +235,14 @@ module control_unit(
 					LW_SETRD: begin
 						out_rde = 1;
 
-						x_wre[rd] = 1;
+						x_wre[rd[3:0]] = 1;
 
 						nxt_exec_state = DECODE;
 						nxt_state = FETCH;
 					end
 
 					ADD_SETALU: begin
-						x_rde[rs2] = 1;
+						x_rde[rs2[3:0]] = 1;
 
 						ALU_wre = 1;
 						ALU_oper = ADD;
@@ -253,7 +253,7 @@ module control_unit(
 					ADD_SETRD: begin
 						ALU_rde = 1;
 
-						x_wre[rd] = 1;
+						x_wre[rd[3:0]] = 1;
 
 						nxt_exec_state = DECODE;
 						nxt_state = FETCH;
@@ -276,7 +276,7 @@ module control_unit(
 						nxt_exec_state = SW_SETRAMREG;
 					end
 					SW_SETRAMREG: begin
-						x_rde[rs2] = 1;
+						x_rde[rs2[3:0]] = 1;
 
 						RAM_datawre = 1;
 
