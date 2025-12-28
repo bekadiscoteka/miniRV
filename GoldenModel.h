@@ -1,0 +1,317 @@
+#ifndef GOLDEN_MODEL_H
+#define GOLDEN_MODEL_H
+
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <vector>
+#include <sys/time.h> // Required for gettimeofday
+
+class GoldenModel {
+public:
+    uint32_t regs[32]; 
+    uint32_t pc;
+    std::vector<uint8_t> memory; 
+    uint64_t boot_time = 0; // To track simulation time
+
+    const uint32_t MEM_BASE = 0x80000000;
+
+    GoldenModel(size_t mem_size = 128 * 1024 * 1024) { 
+        memset(regs, 0, sizeof(regs));
+        pc = MEM_BASE; 
+        memory.resize(mem_size, 0);
+        
+        // Initialize timer
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        boot_time = now.tv_sec * 1000000 + now.tv_usec;
+    }
+
+    // --- Helper: Get Current Time (matches main_diff.cpp) ---
+    uint64_t get_time_us() {
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        uint64_t us = now.tv_sec * 1000000 + now.tv_usec;
+        return us - boot_time;
+    }
+
+    // --- Helper: Read 32-bit Word ---
+    uint32_t readWord(uint32_t addr) {
+        // [FIX] Add Timer MMIO support to Golden Model
+        if (addr == 0x20000000) { // RTC Low
+            return (uint32_t)(get_time_us() & 0xFFFFFFFF);
+        }
+        if (addr == 0x20000004) { // RTC High
+            return (uint32_t)(get_time_us() >> 32);
+        }
+
+		if (addr == 0x10000004) return 0; //((rand() & 0x7) == 0 ? 0 : 1);
+
+        if (addr < MEM_BASE) return 0; 
+        uint32_t idx = addr - MEM_BASE;
+        
+        if (idx + 3 >= memory.size()) return 0; 
+        return memory[idx] | (memory[idx+1] << 8) | 
+               (memory[idx+2] << 16) | (memory[idx+3] << 24);
+    }
+
+    void writeWord(uint32_t addr, uint32_t val) {
+        // [FIX] Handle UART MMIO (Optional, but good for consistency)
+		if (addr == 0x10000000) {
+			return; // just don't crash 
+    	}
+
+        if (addr < MEM_BASE) return;
+        uint32_t idx = addr - MEM_BASE;
+
+        if (idx + 3 >= memory.size()) return;
+        memory[idx]   = val & 0xFF;
+        memory[idx+1] = (val >> 8) & 0xFF;
+        memory[idx+2] = (val >> 16) & 0xFF;
+        memory[idx+3] = (val >> 24) & 0xFF;
+    }
+
+    // ... (Keep readByte, writeByte, loadBin, step exactly as they were) ...
+    // Note: Ensure readByte/writeByte also have bounds checks if you use them for LBU/SB
+    
+    uint8_t readByte(uint32_t addr) {
+        // [FIX] Add Timer MMIO support to Golden Model
+        if (addr == 0x20000000) { // RTC Low
+            return (uint8_t)(get_time_us() & 0xFF);
+        }
+        if (addr == 0x20000004) { // RTC High
+            return (uint8_t)(get_time_us() >> 32);
+        }
+
+		if (addr == 0x10000004) return 0; //((rand() & 0x7) == 0 ? 0 : 1);
+
+        if (addr < MEM_BASE) return 0;
+        uint32_t idx = addr - MEM_BASE;
+        if (idx >= memory.size()) return 0;
+        return memory[idx];
+    }
+
+    void writeByte(uint32_t addr, uint8_t val) {
+        if (addr == 0x10000000) return; // UART
+        if (addr < MEM_BASE) return;
+        uint32_t idx = addr - MEM_BASE;
+        if (idx >= memory.size()) return;
+        memory[idx] = val;
+    }
+
+    // Paste your existing loadBin and step functions here
+    void loadBin(const std::string& filename) {
+        std::ifstream file(filename, std::ios::binary);
+        if (!file.is_open()) {
+            std::cerr << "Error: Could not open file " << filename << std::endl;
+            return;
+        }
+        file.read(reinterpret_cast<char*>(memory.data()), memory.size());
+        std::cout << "Loaded binary file: " << filename << std::endl;
+    }
+
+    void step() {
+        uint32_t instr = readWord(pc);
+        uint32_t opcode = instr & 0x7F;
+        uint32_t rd     = (instr >> 7) & 0x1F;
+        uint32_t funct3 = (instr >> 12) & 0x7;
+        uint32_t rs1    = (instr >> 15) & 0x1F;
+        uint32_t rs2    = (instr >> 20) & 0x1F;
+        uint32_t funct7 = (instr >> 25) & 0x7F;
+        int32_t imm_i = (int32_t)instr >> 20; 
+        int32_t imm_s = ((int32_t)(instr & 0xFE000000) >> 20) | ((instr >> 7) & 0x1F);
+        uint32_t imm_u = instr & 0xFFFFF000;
+        int32_t imm_j = ((instr & 0x80000000) >> 11) | (instr & 0x000FF000) | ((instr >> 20) & 0x1) << 11 | ((instr >> 21) & 0x3FF) << 1; 
+
+        uint32_t next_pc = pc + 4;
+        bool write_rd = true;
+        uint32_t result = 0;
+
+        switch (opcode) {
+            case 0x37: result = imm_u; break; 
+            case 0x17: result = pc + imm_u; break; 
+            case 0x6F: next_pc = pc + imm_j; result = pc + 4; break;
+            case 0x67: next_pc = (regs[rs1] + imm_i) & ~1; result = pc + 4; break;
+            case 0x13: result = regs[rs1] + imm_i; break; 
+            case 0x33: 
+                if (funct3 == 0 && funct7 == 0) result = regs[rs1] + regs[rs2];
+                else if (funct3 == 0 && funct7 == 0x20) result = regs[rs1] - regs[rs2];
+                break;
+            case 0x03: 
+                if (funct3 == 0x2) result = readWord(regs[rs1] + imm_i);
+                else if (funct3 == 0x4) result = (uint32_t)readByte(regs[rs1] + imm_i);
+                break;
+            case 0x23: 
+                write_rd = false;
+                if (funct3 == 0x2) writeWord(regs[rs1] + imm_s, regs[rs2]);
+                else if (funct3 == 0x0) writeByte(regs[rs1] + imm_s, (uint8_t)(regs[rs2] & 0xFF));
+                break;
+            default: write_rd = false; break;
+        }
+
+        if (write_rd && rd != 0) regs[rd] = result;
+        regs[0] = 0; 
+        pc = next_pc;
+    }
+};
+
+class MemoryModel {
+public:
+    uint32_t regs[32]; 
+    uint32_t pc;
+    std::vector<uint8_t> memory; 
+    uint64_t boot_time = 0; // To track simulation time
+
+    const uint32_t MEM_BASE = 0x80000000;
+
+    MemoryModel(size_t mem_size = 128 * 1024 * 1024) { 
+        memset(regs, 0, sizeof(regs));
+        pc = MEM_BASE; 
+        memory.resize(mem_size, 0);
+        
+        // Initialize timer
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        boot_time = now.tv_sec * 1000000 + now.tv_usec;
+    }
+
+    // --- Helper: Get Current Time (matches main_diff.cpp) ---
+    uint64_t get_time_us() {
+        struct timeval now;
+        gettimeofday(&now, NULL);
+        uint64_t us = now.tv_sec * 1000000 + now.tv_usec;
+        return us - boot_time;
+    }
+
+    // --- Helper: Read 32-bit Word ---
+    uint32_t readWord(uint32_t addr) {
+        // [FIX] Add Timer MMIO support to Golden Model
+        if (addr == 0x20000000) { // RTC Low
+            return (uint32_t)(get_time_us() & 0xFFFFFFFF);
+        }
+        if (addr == 0x20000004) { // RTC High
+            return (uint32_t)(get_time_us() >> 32);
+        }
+
+		if (addr == 0x10000004) return 0; //((rand() & 0x7) == 0 ? 0 : 1);
+
+        if (addr < MEM_BASE) return 0; 
+        uint32_t idx = addr - MEM_BASE;
+        
+        if (idx + 3 >= memory.size()) return 0; 
+        return memory[idx] | (memory[idx+1] << 8) | 
+               (memory[idx+2] << 16) | (memory[idx+3] << 24);
+    }
+
+    void writeWord(uint32_t addr, uint32_t val) {
+        // [FIX] Handle UART MMIO (Optional, but good for consistency)
+		if (addr == 0x10000000) {
+			//std::cout << "Writing data: " << val << std::endl;
+			// The data is in the lowest byte. Print it to the screen!
+			char c = (char)(val & 0xFF);
+			putchar(c); 
+			return; // Done! Do NOT write this to the Golden Model's RAM.
+    	}
+
+        if (addr < MEM_BASE) return;
+        uint32_t idx = addr - MEM_BASE;
+
+        if (idx + 3 >= memory.size()) return;
+        memory[idx]   = val & 0xFF;
+        memory[idx+1] = (val >> 8) & 0xFF;
+        memory[idx+2] = (val >> 16) & 0xFF;
+        memory[idx+3] = (val >> 24) & 0xFF;
+    }
+
+    // ... (Keep readByte, writeByte, loadBin, step exactly as they were) ...
+    // Note: Ensure readByte/writeByte also have bounds checks if you use them for LBU/SB
+    
+    uint8_t readByte(uint32_t addr) {
+        if (addr == 0x20000000) { // RTC Low
+			std::cout << "byte time" << std::endl;
+            return (uint8_t)(get_time_us() & 0xFF);
+        }
+        if (addr == 0x20000004) { // RTC High
+            return (uint8_t)(get_time_us() >> 32);
+        }
+
+		if (addr == 0x10000004) return 0;
+        if (addr < MEM_BASE) return 0;
+        uint32_t idx = addr - MEM_BASE;
+        if (idx >= memory.size()) return 0;
+        return memory[idx];
+    }
+
+    void writeByte(uint32_t addr, uint8_t val) {
+        if (addr == 0x10000000) {
+			//std::cout << "Writing data: " << val << std::endl;
+			// The data is in the lowest byte. Print it to the screen!
+			char c = (char)(val & 0xFF);
+			putchar(c); 
+			return; // Done! Do NOT write this to the Golden Model's RAM.
+    	}        if (addr < MEM_BASE) return;
+        uint32_t idx = addr - MEM_BASE;
+        if (idx >= memory.size()) return;
+        memory[idx] = val;
+    }
+
+    // Paste your existing loadBin and step functions here
+    void loadBin(const std::string& filename) {
+        std::ifstream file(filename, std::ios::binary);
+        if (!file.is_open()) {
+            std::cerr << "Error: Could not open file " << filename << std::endl;
+            return;
+        }
+        file.read(reinterpret_cast<char*>(memory.data()), memory.size());
+        std::cout << "Loaded binary file: " << filename << std::endl;
+    }
+
+    void step() {
+        uint32_t instr = readWord(pc);
+        uint32_t opcode = instr & 0x7F;
+        uint32_t rd     = (instr >> 7) & 0x1F;
+        uint32_t funct3 = (instr >> 12) & 0x7;
+        uint32_t rs1    = (instr >> 15) & 0x1F;
+        uint32_t rs2    = (instr >> 20) & 0x1F;
+        uint32_t funct7 = (instr >> 25) & 0x7F;
+        int32_t imm_i = (int32_t)instr >> 20; 
+        int32_t imm_s = ((int32_t)(instr & 0xFE000000) >> 20) | ((instr >> 7) & 0x1F);
+        uint32_t imm_u = instr & 0xFFFFF000;
+        int32_t imm_j = ((instr & 0x80000000) >> 11) | (instr & 0x000FF000) | ((instr >> 20) & 0x1) << 11 | ((instr >> 21) & 0x3FF) << 1; 
+
+        uint32_t next_pc = pc + 4;
+        bool write_rd = true;
+        uint32_t result = 0;
+
+        switch (opcode) {
+            case 0x37: result = imm_u; break; 
+            case 0x17: result = pc + imm_u; break; 
+            case 0x6F: next_pc = pc + imm_j; result = pc + 4; break;
+            case 0x67: next_pc = (regs[rs1] + imm_i) & ~1; result = pc + 4; break;
+            case 0x13: result = regs[rs1] + imm_i; break; 
+            case 0x33: 
+                if (funct3 == 0 && funct7 == 0) result = regs[rs1] + regs[rs2];
+                else if (funct3 == 0 && funct7 == 0x20) result = regs[rs1] - regs[rs2];
+                break;
+            case 0x03: 
+                if (funct3 == 0x2) result = readWord(regs[rs1] + imm_i);
+                else if (funct3 == 0x4) result = (uint32_t)readByte(regs[rs1] + imm_i);
+                break;
+            case 0x23: 
+                write_rd = false;
+                if (funct3 == 0x2) writeWord(regs[rs1] + imm_s, regs[rs2]);
+                else if (funct3 == 0x0) writeByte(regs[rs1] + imm_s, (uint8_t)(regs[rs2] & 0xFF));
+                break;
+            default: write_rd = false; break;
+        }
+
+        if (write_rd && rd != 0) regs[rd] = result;
+        regs[0] = 0; 
+        pc = next_pc;
+    }
+};
+
+#endif

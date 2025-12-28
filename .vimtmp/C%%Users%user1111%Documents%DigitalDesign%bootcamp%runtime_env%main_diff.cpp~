@@ -1,0 +1,180 @@
+#include "Vtb_riscv.h" // Your Top Level Verilog
+#include "Vtb_riscv_mini_riscv.h" // To access internal CPU signals
+#include "verilated.h"
+#include "Vtb_riscv_tb_riscv.h"
+#include "GoldenModel.h"
+#include <iostream>
+#include <iomanip>
+// include "Vtb_riscv___024root.h"  <--- ADD THIS! Crucial for accessing internal signals
+#include "svdpi.h" // Required for DPI-C
+#include "Vtb_riscv__Dpi.h" // Verilator will generate this
+
+// 1. Make GoldenModel GLOBAL so DPI functions can access it
+GoldenModel* gold = nullptr; 
+
+// 2. Implement the DPI-C functions (matches Slide 19)
+extern "C" int mem_read(int raddr) {
+    if (gold) return gold->readWord(raddr);
+    return 0;
+}
+
+extern "C" void mem_write(int waddr, int wdata, char wmask) {
+    if (!gold) return;
+    
+    // The lecture uses a mask (char) to decide which bytes to write
+    // waddr is assumed to be 4-byte aligned by the logic below
+    uint32_t current = gold->readWord(waddr & ~3);
+    uint32_t mask = 0;
+    
+    // Expand char mask (e.g., 0001) to 32-bit mask (e.g., 000000FF)
+    if (wmask & 0x1) mask |= 0x000000FF;
+    if (wmask & 0x2) mask |= 0x0000FF00;
+    if (wmask & 0x4) mask |= 0x00FF0000;
+    if (wmask & 0x8) mask |= 0xFF000000;
+    
+    uint32_t next_val = (current & ~mask) | (wdata & mask);
+    gold->writeWord(waddr & ~3, next_val);
+}
+// Helper to check register mismatch
+bool check(const char* name, uint32_t rtl_val, uint32_t gold_val, int cycle) {
+    if (rtl_val != gold_val) {
+        std::cout << "\n[DIFF-TEST ERROR] Cycle " << cycle << ": Mismatch in " << name << "\n";
+        std::cout << "  RTL:    0x" << std::hex << rtl_val << "\n";
+        std::cout << "  Golden: 0x" << std::hex << gold_val << std::endl;
+        return false;
+    }
+    return true;
+}
+
+// Add this function helper to main_diff.cpp
+
+void dump_registers(Vtb_riscv* top, GoldenModel* gold) {
+    const char* abi_names[] = {
+        "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
+        "s0/fp", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
+        "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
+        "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
+    };
+
+    std::cout << "\n================ FINAL REGISTER STATE ================\n";
+    std::cout << " Reg  | Name  |     RTL      |    Golden    | Match? \n";
+    std::cout << "------+-------+--------------+--------------+--------\n";
+
+    for (int i = 0; i < 32; i++) {
+        uint32_t rtl_val = 0;
+        
+        // Map index 'i' to the specific RTL signal exposed by Verilator
+        // Note: Ensure these names exactly match your mini_riscv.v public regs
+        switch(i) {
+            case 0:  rtl_val = top->tb_riscv->cpu->zero;  break;
+            case 1:  rtl_val = top->tb_riscv->cpu->ra;    break;
+            case 2:  rtl_val = top->tb_riscv->cpu->sp;    break;
+            case 3:  rtl_val = top->tb_riscv->cpu->gp;    break;
+            case 4:  rtl_val = top->tb_riscv->cpu->tp;    break;
+            case 5:  rtl_val = top->tb_riscv->cpu->t0;    break;
+            case 6:  rtl_val = top->tb_riscv->cpu->t1;    break;
+            case 7:  rtl_val = top->tb_riscv->cpu->t2;    break;
+            case 8:  rtl_val = top->tb_riscv->cpu->s0_fp; break; // Note: s0_fp in your Verilog
+            case 9:  rtl_val = top->tb_riscv->cpu->s1;    break;
+            case 10: rtl_val = top->tb_riscv->cpu->a0;    break;
+            case 11: rtl_val = top->tb_riscv->cpu->a1;    break;
+            case 12: rtl_val = top->tb_riscv->cpu->a2;    break;
+            case 13: rtl_val = top->tb_riscv->cpu->a3;    break;
+            case 14: rtl_val = top->tb_riscv->cpu->a4;    break;
+            case 15: rtl_val = top->tb_riscv->cpu->a5;    break;
+        }
+
+        uint32_t gold_val = gold->regs[i];
+        bool match = (rtl_val == gold_val);
+
+        std::cout << " x" << std::dec << std::setw(2) << std::setfill('0') << i 
+                  << "  | " << std::setw(5) << std::setfill(' ') << abi_names[i] 
+                  << " | 0x" << std::hex << std::setw(8) << std::setfill('0') << rtl_val 
+                  << "   | 0x" << std::hex << std::setw(8) << std::setfill('0') << gold_val 
+                  << "   | " << (match ? "OK" : "FAIL") << "\n";
+    }
+    std::cout << "======================================================\n";
+}
+
+int main(int argc, char** argv) {
+    Verilated::commandArgs(argc, argv);
+    Vtb_riscv* top = new Vtb_riscv; // Your Top Module
+
+    // Initialize Golden Model
+    gold = new GoldenModel();
+    gold->loadHex("sum.hex"); // Must match your Verilog path!
+    
+    // Test: Read the instruction at 0x00
+    // Expected: 0x00000413 based on your hex file
+    std::cout << "Word at 0x00: " << std::hex << gold->readWord(0) << std::endl;
+
+    top->clk = 0;
+    top->reset = 1; // Assert Reset
+    
+    // Reset Sequence
+    for (int i = 0; i < 5; i++) {
+        top->clk = !top->clk;
+        top->eval();
+    }
+    top->reset = 0; // Release Reset
+	top->clk = 0;
+	top->eval();
+
+    int cycle = 0;
+    while (!Verilated::gotFinish() && cycle < 100000) {
+        
+        // --- 1. Run RTL Cycle ---
+        top->clk = 1;
+        top->eval();
+        top->clk = 0;
+        top->eval();
+
+        // --- 2. Run Golden Model Step ---
+        gold->step();
+
+        // --- 3. Compare States ---
+        
+        // Access internal RTL signals (Path depends on your module hierarchy)
+        // Usually: top -> tb_riscv -> cpu -> signal
+        // Adjust 'Vtb_riscv_mini_riscv' based on your generated headers
+        auto rtl_cpu = top->tb_riscv->cpu; 
+
+        // --- 3. Compare States ---
+
+        // Verilator flattens hierarchy. The path is usually:
+        // top -> rootp -> (Top Module Name)__DOT__(Sub Module)__DOT__(Signal)
+        
+        // IMPORTANT: Check obj_dir/Vtb_riscv___024root.h if these names fail!
+        // The names below assume your top module instance is "tb_riscv" and cpu instance is "cpu"
+// CORRECT FOR OLDER VERILATOR
+// --- 3. Compare States ---
+        
+        // Correct path for your Verilator version:
+        // top -> (instance of tb_riscv) -> (cpu instance name)__DOT__(signal name)
+        
+        // Correct path based on your header files:
+        if (!check("PC", top->tb_riscv->cpu->pc, gold->pc, cycle)) break;
+        if (!check("ra", top->tb_riscv->cpu->ra, gold->regs[1], cycle)) break;
+        if (!check("sp", top->tb_riscv->cpu->sp, gold->regs[2], cycle)) break;
+        if (!check("gp", top->tb_riscv->cpu->gp, gold->regs[3], cycle)) break;
+        if (!check("tp", top->tb_riscv->cpu->tp, gold->regs[4], cycle)) break;
+        if (!check("a0", top->tb_riscv->cpu->a0, gold->regs[10], cycle)) break;
+        if (!check("a5", top->tb_riscv->cpu->a5, gold->regs[15], cycle)) break;
+
+
+
+		cycle++;
+    }
+
+    std::cout << "Simulation finished at cycle " << cycle << std::endl;
+	std::cout << "program counter: " << gold->pc;
+    
+    // Final check of result
+    //if (gold->regs[10] == 0) std::cout << "TEST PASSED (a0 = 0)\n";
+    //else std::cout << "TEST FAILED (a0 = " << gold->regs[10] << ")\n";
+	dump_registers(top, gold);
+
+    delete top;
+    delete gold;
+    return 0;
+}

@@ -1,0 +1,5 @@
+vlib design_test 
+vlog -work design_test tb_riscv.v
+vsim design_test.tb_riscv
+add wave -r sim:/tb_riscv/*
+run -all

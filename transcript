@@ -1,0 +1,30 @@
+# do script.do
+# ** Warning: (vlib-34) Library already exists at "design_test".
+# Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+# Start time: 00:17:21 on Dec 24,2025
+# vlog -reportprogress 300 -work design_test tb_riscv.v 
+# -- Compiling module ROM32x32
+# -- Compiling module RAM32x32
+# -- Compiling module mini_riscv
+# -- Compiling module tb_riscv
+# 
+# Top level modules:
+# 	tb_riscv
+# End time: 00:17:21 on Dec 24,2025, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vsim design_test.tb_riscv 
+# Start time: 00:17:21 on Dec 24,2025
+# Loading design_test.tb_riscv
+# Loading design_test.ROM32x32
+# Loading design_test.RAM32x32
+# Loading design_test.mini_riscv
+# ** Warning: (vsim-3017) tb_riscv.v(21): [TFMPC] - Too few port connections. Expected 8, found 7.
+#    Time: 0 ps  Iteration: 0  Instance: /tb_riscv/dataMem File: RAM32x32.v
+# ** Warning: (vsim-3722) tb_riscv.v(21): [TFMPC] - Missing connection for port 'rde'.
+# opcode = xxxxxxx
+# x10 =          x
+# ** Note: $stop    : tb_riscv.v(53)
+#    Time: 1 ns  Iteration: 0  Instance: /tb_riscv
+# Break in Module tb_riscv at tb_riscv.v line 53
+# End time: 00:18:47 on Dec 24,2025, Elapsed time: 0:01:26
+# Errors: 0, Warnings: 2
