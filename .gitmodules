@@ -1,0 +1,9 @@
+[submodule "third_party/abstract-machine"]
+	path = third_party/abstract-machine
+	url = https://github.com/NJU-ProjectN/abstract-machine
+[submodule "third_party/am-kernels"]
+	path = third_party/am-kernels
+	url = https://github.com/NJU-ProjectN/am-kernels
+[submodule "third_party/fceux-am"]
+	path = third_party/fceux-am
+	url = https://github.com/NJU-ProjectN/fceux-am

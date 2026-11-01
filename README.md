@@ -95,3 +95,35 @@ The system follows a **Von Neumann architecture**, where instructions and data s
 
 ---
 
+
+## 📁 Project Structure
+
+```
+.
+├── rtl/                  # Synthesizable CPU RTL
+│   └── mini_riscv.v
+├── sim/                  # Verilator testbench + C++ golden model
+│   ├── tb_riscv.v        # Top-level: CPU + DPI memory
+│   ├── Memory_DPI.v      # Memory bridged to C++ via DPI-C
+│   ├── main_diff.cpp     # Simulation driver / differential testing
+│   ├── GoldenModel.h     # C++ reference ISA model
+│   └── legacy/           # Old behavioral ROM/RAM models + ModelSim script
+├── programs/
+│   ├── bin/              # Raw binaries built with abstract-machine
+│   ├── hex/              # Hex images ($readmemh); hex/raw = original word dumps
+│   └── roms/             # NES ROMs for fceux-am
+├── tools/                # Helper scripts (hex conversion)
+├── scripts/              # Toolchain install / test runners
+├── third_party/          # git submodules: abstract-machine, am-kernels, fceux-am
+└── Makefile
+```
+
+## ▶️ Build & Run
+
+```bash
+scripts/install_compilers.sh      # riscv toolchain + verilator
+scripts/install_AM.sh             # init submodules, prints AM_HOME export
+make build                        # verilate + compile -> build/obj_dir/Vtb_riscv
+make sim IMG=programs/bin/add-minirv-npc.bin
+make clean
+```
