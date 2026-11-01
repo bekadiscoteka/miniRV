@@ -1,5 +1,0 @@
-#! /bin/bash
-
-verilator -cc tb_riscv.v --exe main_diff.cpp -I. -Wno-WIDTH -Wno-CASEINCOMPLETE --top-module tb_riscv
-make -j -C obj_dir -f Vtb_riscv.mk
-
